@@ -1,3 +1,52 @@
+Write-Host "Fixing Timeflow files..." -ForegroundColor Cyan
+
+# Fix API route
+$apiRoute = @'
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { state, problem, lens } = await request.json();
+    
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
+    }
+
+    const prompt = `You are a wise philosophical guide. A person is experiencing a "${state}" state and shared: "${problem}". Provide guidance through the lens of ${lens}. Structure your response as: 1) A brief reflection (2-3 sentences), 2) Key insight (1 sentence), 3) Practical action (1 sentence). Keep total under 150 words. Be warm, clear, and actionable.`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return NextResponse.json({ error: `Claude API error: ${errorData.error?.message}` }, { status: response.status });
+    }
+
+    const data = await response.json();
+    return NextResponse.json({ wisdom: data.content[0].text });
+  } catch (error) {
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+'@
+
+Set-Content -Path "app\api\generate-wisdom\route.ts" -Value $apiRoute
+Write-Host "✓ Fixed API route" -ForegroundColor Green
+
+# Fix lens selection page
+$lensPage = @'
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -55,3 +104,11 @@ function LensSelectionContent() {
 export default function LensSelection() {
   return <Suspense fallback={<div className="min-h-screen bg-[#faf9f7] flex items-center justify-center">Loading...</div>}><LensSelectionContent /></Suspense>;
 }
+'@
+
+Set-Content -Path "app\lens-selection\page.tsx" -Value $lensPage
+Write-Host "✓ Fixed lens selection page" -ForegroundColor Green
+
+Write-Host ""
+Write-Host "All files fixed! Restart your dev server." -ForegroundColor Yellow
+Write-Host "Run: npm run dev" -ForegroundColor Gray
