@@ -1,14 +1,12 @@
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+import { NextRequest, NextResponse } from 'next/server';
 
+export async function POST(request: NextRequest) {
   try {
-    const { state, problem, lens } = req.body;
+    const { state, problem, lens } = await request.json();
     
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ error: 'API key not configured' });
+      return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
     }
 
     const prompt = `You are a wise philosophical guide. A person is experiencing a "${state}" state and shared: "${problem}". Provide guidance through the lens of ${lens}. Structure your response as: 1) A brief reflection (2-3 sentences), 2) Key insight (1 sentence), 3) Practical action (1 sentence). Keep total under 150 words. Be warm, clear, and actionable.`;
@@ -29,13 +27,13 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errorData = await response.json();
-      return res.status(response.status).json({ error: `Claude API error: ${errorData.error?.message}` });
+      return NextResponse.json({ error: `Claude API error: ${errorData.error?.message}` }, { status: response.status });
     }
 
     const data = await response.json();
-    return res.status(200).json({ wisdom: data.content[0].text });
-  } catch (error) {
-    console.error('API error:', error);
-    return res.status(500).json({ error: 'Server error' });
+    return NextResponse.json({ wisdom: data.content[0].text });
+  } catch (error: any) {
+    console.error('Error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
