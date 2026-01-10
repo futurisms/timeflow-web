@@ -1,4 +1,6 @@
-'use client';
+const fs = require('fs');
+
+const lensPage = `'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, Suspense } from 'react';
@@ -23,7 +25,7 @@ function LensSelectionContent() {
     if (selectedLens) {
       setIsGenerating(true);
       setTimeout(() => {
-        router.push(`/wisdom-card?state=${state}&problem=${problem}&lens=${selectedLens}`);
+        router.push(\`/wisdom-card?state=\${state}&problem=\${problem}&lens=\${selectedLens}\`);
       }, 1500);
     }
   };
@@ -36,17 +38,17 @@ function LensSelectionContent() {
       </div>
       <div className="max-w-3xl w-full grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {philosophicalLenses.map((lens) => (
-          <button key={lens.id} onClick={() => setSelectedLens(lens.id)} className={`p-6 rounded-2xl text-left transition-all ${selectedLens === lens.id ? 'bg-[#292524] ring-4 ring-offset-4 ring-[#292524] scale-105' : 'bg-white hover:shadow-lg'}`}>
+          <button key={lens.id} onClick={() => setSelectedLens(lens.id)} className={\`p-6 rounded-2xl text-left transition-all \${selectedLens === lens.id ? 'bg-[#292524] ring-4 ring-offset-4 ring-[#292524] scale-105' : 'bg-white hover:shadow-lg'}\`}>
             <div className="text-4xl mb-3">{lens.icon}</div>
-            <h3 className={`text-xl font-bold mb-2 ${selectedLens === lens.id ? 'text-white' : 'text-[#1c1917]'}`}>{lens.name}</h3>
-            <p className={`text-sm mb-3 ${selectedLens === lens.id ? 'text-white/90' : 'text-[#57534e]'}`}>{lens.description}</p>
-            <p className={`text-xs italic ${selectedLens === lens.id ? 'text-white/70' : 'text-[#78716c]'}`}>{lens.philosopher}</p>
+            <h3 className={\`text-xl font-bold mb-2 \${selectedLens === lens.id ? 'text-white' : 'text-[#1c1917]'}\`}>{lens.name}</h3>
+            <p className={\`text-sm mb-3 \${selectedLens === lens.id ? 'text-white/90' : 'text-[#57534e]'}\`}>{lens.description}</p>
+            <p className={\`text-xs italic \${selectedLens === lens.id ? 'text-white/70' : 'text-[#78716c]'}\`}>{lens.philosopher}</p>
           </button>
         ))}
       </div>
       <div className="flex gap-4">
         <button onClick={() => router.back()} disabled={isGenerating} className="px-8 py-3 rounded-full text-base font-semibold bg-white border-2 border-[#e7e5e4] text-[#57534e] hover:border-[#292524] hover:text-[#1c1917] transition-all disabled:opacity-50">← Back</button>
-        <button onClick={handleGenerate} disabled={!selectedLens || isGenerating} className={`px-12 py-3 rounded-full text-base font-semibold transition-all ${selectedLens && !isGenerating ? 'bg-[#292524] text-white hover:bg-[#1c1917] shadow-lg' : 'bg-[#e7e5e4] text-[#78716c] cursor-not-allowed'}`}>{isGenerating ? 'Generating...' : 'Generate Wisdom Card →'}</button>
+        <button onClick={handleGenerate} disabled={!selectedLens || isGenerating} className={\`px-12 py-3 rounded-full text-base font-semibold transition-all \${selectedLens && !isGenerating ? 'bg-[#292524] text-white hover:bg-[#1c1917] shadow-lg' : 'bg-[#e7e5e4] text-[#78716c] cursor-not-allowed'}\`}>{isGenerating ? 'Generating...' : 'Generate Wisdom Card →'}</button>
       </div>
     </div>
   );
@@ -55,3 +57,7 @@ function LensSelectionContent() {
 export default function LensSelection() {
   return <Suspense fallback={<div className="min-h-screen bg-[#faf9f7] flex items-center justify-center">Loading...</div>}><LensSelectionContent /></Suspense>;
 }
+`;
+
+fs.writeFileSync('app/lens-selection/page.tsx', lensPage);
+console.log('✓ Fixed TypeScript error in lens-selection');
