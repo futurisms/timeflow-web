@@ -1,4 +1,6 @@
-'use client';
+const fs = require('fs');
+
+const wisdomCard = `'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 
@@ -79,7 +81,7 @@ function WisdomCardContent() {
   return (
     <div className="min-h-screen bg-[#faf9f7] flex flex-col items-center justify-center px-8 py-12">
       <div className="max-w-2xl w-full">
-        <div className={`bg-gradient-to-br ${stateColors[state] || 'from-gray-500 to-gray-600'} rounded-3xl p-8 shadow-2xl text-white mb-8`}>
+        <div className={\`bg-gradient-to-br \${stateColors[state] || 'from-gray-500 to-gray-600'} rounded-3xl p-8 shadow-2xl text-white mb-8\`}>
           <div className="flex justify-between items-start mb-6">
             <div className="text-5xl">{lensIcons[lens] || '✨'}</div>
             <div className="text-right">
@@ -118,3 +120,7 @@ export default function WisdomCard() {
     </Suspense>
   );
 }
+`;
+
+fs.writeFileSync('app/wisdom-card/page.tsx', wisdomCard);
+console.log('✓ Fixed all TypeScript errors in wisdom-card');
