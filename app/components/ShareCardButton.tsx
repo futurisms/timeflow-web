@@ -84,7 +84,7 @@ export function ShareCardButton({ cardId, state, problem, lens, wisdom, createdA
       });
 
       // Use modern API if available
-      if ('toBlob' in canvas) {
+      if ('toBlob' in canvas && typeof canvas.toBlob === 'function') {
         canvas.toBlob((blob) => {
           if (!blob) {
             throw new Error('Failed to create image');
@@ -110,8 +110,8 @@ export function ShareCardButton({ cardId, state, problem, lens, wisdom, createdA
           setTimeout(() => setShowModal(false), 1000);
         }, 'image/png', 1.0);
       } else {
-        // Fallback for older browsers
-        const url = canvas.toDataURL('image/png');
+        // Fallback for older browsers - canvas is guaranteed to be HTMLCanvasElement here
+        const url = (canvas as HTMLCanvasElement).toDataURL('image/png');
         const a = document.createElement('a');
         a.href = url;
         a.download = `timeflow-${lens}-card.png`;
