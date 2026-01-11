@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
@@ -285,5 +285,24 @@ export default function WisdomCard() {
         </div>
       </div>
     </div>
+  );
+}
+
+function WisdomCardContent() {
+  return <WisdomCard />;
+}
+
+export default function WisdomCardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center px-8">
+        <div className="text-center">
+          <div className="inline-block w-16 h-16 border-4 border-[#292524] border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-[#57534e] text-lg">Loading...</p>
+        </div>
+      </div>
+    }>
+      <WisdomCardContent />
+    </Suspense>
   );
 }
