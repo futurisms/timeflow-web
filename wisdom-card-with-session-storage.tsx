@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
 
 const stateColors = {
   rising: 'from-emerald-500 to-emerald-600',
@@ -31,7 +30,6 @@ export default function WisdomCard() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   
   const state = searchParams?.get('state') || '';
   const problem = searchParams?.get('problem') || '';
@@ -77,7 +75,7 @@ export default function WisdomCard() {
 
   const handleSaveCard = async () => {
     if (!isLoggedIn) {
-      // Store card data in sessionStorage
+      // Store card data in sessionStorage before redirect
       sessionStorage.setItem('pendingCard', JSON.stringify({
         state,
         problem,
@@ -85,8 +83,8 @@ export default function WisdomCard() {
         wisdom
       }));
       
-      // Show login prompt instead of redirecting
-      setShowLoginPrompt(true);
+      // Redirect to login
+      router.push('/auth/login');
       return;
     }
 
@@ -97,7 +95,7 @@ export default function WisdomCard() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        setShowLoginPrompt(true);
+        setError('Please log in to save cards');
         return;
       }
 
@@ -139,6 +137,40 @@ export default function WisdomCard() {
     router.push('/state-selection');
   };
 
+  // Check for pending card on mount (after login redirect)
+  useEffect(() => {
+    const checkPendingCard = async () => {
+      const pendingCard = sessionStorage.getItem('pendingCard');
+      if (pendingCard && isLoggedIn) {
+        const card = JSON.parse(pendingCard);
+        
+        // Auto-save the pending card
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (user) {
+            await supabase.from('wisdom_cards').insert({
+              user_id: user.id,
+              state: card.state,
+              problem: card.problem,
+              lens: card.lens,
+              wisdom: card.wisdom
+            });
+            
+            sessionStorage.removeItem('pendingCard');
+            router.push('/my-cards');
+          }
+        } catch (err) {
+          console.error('Error saving pending card:', err);
+        }
+      }
+    };
+    
+    if (!loading) {
+      checkPendingCard();
+    }
+  }, [loading, isLoggedIn]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center px-8">
@@ -153,32 +185,6 @@ export default function WisdomCard() {
   return (
     <div className="min-h-screen bg-[#faf9f7] py-12 px-8">
       <div className="max-w-2xl mx-auto">
-        {/* Login Prompt Modal */}
-        {showLoginPrompt && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl p-8 max-w-md w-full">
-              <h2 className="text-2xl font-bold text-[#1c1917] mb-4">Please Log In</h2>
-              <p className="text-[#57534e] mb-6">
-                Your card has been saved temporarily. Log in to save it permanently to your account!
-              </p>
-              <div className="flex flex-col gap-3">
-                <Link
-                  href="/auth/login"
-                  className="bg-[#292524] text-white py-3 rounded-full font-semibold hover:bg-[#1c1917] transition-all text-center"
-                >
-                  Go to Login
-                </Link>
-                <button
-                  onClick={() => setShowLoginPrompt(false)}
-                  className="bg-white border-2 border-[#e7e5e4] text-[#292524] py-3 rounded-full font-semibold hover:bg-[#faf9f7] transition-all"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Success Message */}
         {saved && (
           <div className="bg-emerald-50 border-2 border-emerald-500 rounded-2xl p-4 mb-6 animate-fade-in">
@@ -200,11 +206,11 @@ export default function WisdomCard() {
           </div>
         )}
 
-        {/* Login Tip */}
-        {!isLoggedIn && !showLoginPrompt && (
+        {/* Login Prompt */}
+        {!isLoggedIn && (
           <div className="bg-blue-50 border-2 border-blue-500 rounded-2xl p-4 mb-6">
             <p className="text-blue-800">
-              💡 <strong>Not logged in?</strong> You can still view this card, but you'll need to log in to save it.
+              💡 <strong>Tip:</strong> Log in before saving to keep this card!
             </p>
           </div>
         )}
@@ -271,7 +277,7 @@ export default function WisdomCard() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                 </svg>
-                {isLoggedIn ? 'Save Card' : 'Save Card (Login Required)'}
+                {isLoggedIn ? 'Save Card' : 'Log In to Save Card'}
               </>
             )}
           </button>
