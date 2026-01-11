@@ -21,10 +21,22 @@ const lensIcons = {
   pragmatism: '🔧',
 };
 
+// Sanitize text by replacing special characters with plain equivalents
+const sanitizeText = (text: string) => {
+  return text
+    .replace(/[—–]/g, '-')  // Replace em/en dashes with hyphens
+    .replace(/[""]/g, '"')   // Replace smart quotes with straight quotes
+    .replace(/['']/g, "'")   // Replace smart apostrophes with straight apostrophes
+    .replace(/…/g, '...')    // Replace ellipsis character with three dots
+    .replace(/[‐‑‒–—―]/g, '-') // Replace all dash variants
+    .replace(/[\u2000-\u200B]/g, ' ') // Replace special spaces with normal space
+    .trim();
+};
+
 function WisdomCard() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   const [wisdom, setWisdom] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -32,7 +44,7 @@ function WisdomCard() {
   const [error, setError] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  
+
   const state = searchParams?.get('state') || '';
   const problem = searchParams?.get('problem') || '';
   const lens = searchParams?.get('lens') || '';
@@ -45,7 +57,7 @@ function WisdomCard() {
     // Check if user is logged in
     const { data: { user } } = await supabase.auth.getUser();
     setIsLoggedIn(!!user);
-    
+
     // Generate wisdom regardless of login status
     await generateWisdom();
   };
@@ -54,7 +66,7 @@ function WisdomCard() {
     try {
       setLoading(true);
       setError('');
-      
+
       const response = await fetch('/api/generate-wisdom', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -66,7 +78,10 @@ function WisdomCard() {
       }
 
       const data = await response.json();
-      setWisdom(data.wisdom);
+      
+      // SANITIZE THE WISDOM TEXT HERE - before saving to state
+      const cleanWisdom = sanitizeText(data.wisdom);
+      setWisdom(cleanWisdom);
     } catch (err) {
       console.error('Error generating wisdom:', err);
       setError('Failed to generate wisdom. Please try again.');
@@ -77,14 +92,14 @@ function WisdomCard() {
 
   const handleSaveCard = async () => {
     if (!isLoggedIn) {
-      // Store card data in sessionStorage
+      // Store card data in sessionStorage (with sanitized wisdom)
       sessionStorage.setItem('pendingCard', JSON.stringify({
         state,
         problem,
         lens,
-        wisdom
+        wisdom  // Already sanitized
       }));
-      
+
       // Show login prompt instead of redirecting
       setShowLoginPrompt(true);
       return;
@@ -95,13 +110,13 @@ function WisdomCard() {
       setError('');
 
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         setShowLoginPrompt(true);
         return;
       }
 
-      // Save the card to Supabase
+      // Save the card to Supabase (wisdom is already sanitized)
       const { error: insertError } = await supabase
         .from('wisdom_cards')
         .insert({
@@ -109,7 +124,7 @@ function WisdomCard() {
           state,
           problem,
           lens,
-          wisdom
+          wisdom  // Already sanitized from generateWisdom
         });
 
       if (insertError) {
@@ -118,10 +133,10 @@ function WisdomCard() {
 
       // Show success state
       setSaved(true);
-      
+
       // Clear any pending card
       sessionStorage.removeItem('pendingCard');
-      
+
       // Redirect to My Cards after a delay
       setTimeout(() => {
         router.push('/my-cards');
@@ -222,10 +237,10 @@ function WisdomCard() {
             </div>
             <div className="text-right">
               <p className="text-xs opacity-75">
-                {new Date().toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric', 
-                  year: 'numeric' 
+                {new Date().toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
                 })}
               </p>
             </div>

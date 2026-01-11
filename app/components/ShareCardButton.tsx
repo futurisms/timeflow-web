@@ -1,8 +1,5 @@
 'use client';
 
-// This is a component that adds share functionality to existing cards
-// Install: npm install html2canvas
-
 import { useState } from 'react';
 
 interface ShareCardButtonProps {
@@ -15,11 +12,11 @@ interface ShareCardButtonProps {
 }
 
 const stateColors = {
-  rising: 'from-emerald-500 to-emerald-600',
-  falling: 'from-red-500 to-red-600',
-  turbulent: 'from-amber-500 to-amber-600',
-  stuck: 'from-slate-500 to-slate-600',
-  grounded: 'from-blue-500 to-blue-600',
+  rising: '#10b981',  // emerald-500
+  falling: '#ef4444',  // red-500
+  turbulent: '#f59e0b',  // amber-500
+  stuck: '#64748b',  // slate-500
+  grounded: '#3b82f6',  // blue-500
 };
 
 const lensIcons = {
@@ -34,56 +31,115 @@ export function ShareCardButton({ cardId, state, problem, lens, wisdom, createdA
   const [downloading, setDownloading] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
+  // Sanitize text by replacing special characters with plain equivalents
+  const sanitizeText = (text: string) => {
+    return text
+      .replace(/[—–]/g, '-')  // Replace em/en dashes with hyphens
+      .replace(/[""]/g, '"')   // Replace smart quotes with straight quotes
+      .replace(/['']/g, "'")   // Replace smart apostrophes with straight apostrophes
+      .replace(/…/g, '...')    // Replace ellipsis character with three dots
+      .replace(/[‐‑‒–—―]/g, '-') // Replace all dash variants
+      .replace(/[\u2000-\u200B]/g, ' ') // Replace special spaces with normal space
+      .trim();
+  };
+
+  const displayWisdom = sanitizeText(wisdom);
+  const displayProblem = sanitizeText(problem);
+
+  const showNotification = (message: string, type: 'success' | 'error') => {
+    const div = document.createElement('div');
+    div.className = `fixed top-4 right-4 ${type === 'success' ? 'bg-emerald-500' : 'bg-red-500'} text-white px-6 py-3 rounded-xl shadow-lg z-[9999] animate-fade-in`;
+    div.textContent = message;
+    document.body.appendChild(div);
+    setTimeout(() => {
+      div.remove();
+    }, 3000);
+  };
+
   const downloadAsImage = async () => {
     setDownloading(true);
     
     try {
-      // Dynamically import html2canvas to avoid SSR issues
+      // Import html2canvas dynamically
       const html2canvas = (await import('html2canvas')).default;
       
-      // Get the card element
       const cardElement = document.getElementById(`share-card-${cardId}`);
       if (!cardElement) {
         throw new Error('Card element not found');
       }
 
-      // Generate canvas from the card
+      // Wait a bit for fonts to load
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Generate the canvas
       const canvas = await html2canvas(cardElement, {
         backgroundColor: null,
-        scale: 2, // Higher quality
+        scale: 2,
         logging: false,
+        useCORS: true,
+        allowTaint: false,
+        foreignObjectRendering: false,
+        width: cardElement.offsetWidth,
+        height: cardElement.offsetHeight,
       });
 
-      // Convert to blob and download
-      canvas.toBlob((blob) => {
-        if (!blob) return;
+      // Use modern API if available
+      if ('toBlob' in canvas) {
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            throw new Error('Failed to create image');
+          }
+          
+          // Create and trigger download
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `timeflow-${lens}-card.png`;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          
+          // Cleanup
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 100);
+          
+          setDownloading(false);
+          showNotification('Card downloaded successfully!', 'success');
+          setTimeout(() => setShowModal(false), 1000);
+        }, 'image/png', 1.0);
+      } else {
+        // Fallback for older browsers
+        const url = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `timeflow-${lens}-card.png`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `timeflow-wisdom-${lens}-${Date.now()}.png`;
-        link.click();
-        
-        URL.revokeObjectURL(url);
         setDownloading(false);
-        setShowModal(false);
-      });
-    } catch (err) {
-      console.error('Error downloading card:', err);
-      alert('Failed to download card. Please try again.');
+        showNotification('Card downloaded successfully!', 'success');
+        setTimeout(() => setShowModal(false), 1000);
+      }
+    } catch (err: any) {
+      console.error('Download error:', err);
       setDownloading(false);
+      showNotification('Download failed. Please try again.', 'error');
     }
   };
 
   const copyToClipboard = async () => {
-    const text = `${wisdom}\n\n— Timeflow Wisdom Card\nLens: ${lens}\nState: ${state}`;
+    const text = `${displayWisdom}\n\n- Timeflow Card\nLens: ${lens}\nState: ${state}`;
     
     try {
       await navigator.clipboard.writeText(text);
-      alert('Copied to clipboard!');
+      showNotification('Copied to clipboard!', 'success');
     } catch (err) {
-      console.error('Failed to copy:', err);
-      alert('Failed to copy to clipboard');
+      console.error('Copy failed:', err);
+      showNotification('Failed to copy. Please try again.', 'error');
     }
   };
 
@@ -91,18 +147,23 @@ export function ShareCardButton({ cardId, state, problem, lens, wisdom, createdA
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="text-white/80 hover:text-white transition-colors"
+        className="bg-white/20 hover:bg-white/30 p-2 rounded-full transition-all"
         title="Share card"
       >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
         </svg>
       </button>
 
-      {/* Share Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9998] p-4"
+          onClick={() => setShowModal(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-[#1c1917]">Share Card</h2>
               <button
@@ -115,14 +176,17 @@ export function ShareCardButton({ cardId, state, problem, lens, wisdom, createdA
               </button>
             </div>
 
-            {/* Preview Card */}
             <div className="mb-6">
               <p className="text-sm text-[#57534e] mb-4">Preview:</p>
               <div
                 id={`share-card-${cardId}`}
-                className={`bg-gradient-to-br ${stateColors[state as keyof typeof stateColors]} rounded-3xl shadow-2xl p-8 text-white`}
+                className="rounded-3xl shadow-2xl p-8 text-white"
+                style={{ 
+                  width: '500px', 
+                  maxWidth: '100%',
+                  backgroundColor: stateColors[state as keyof typeof stateColors],
+                }}
               >
-                {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <span className="text-4xl">{lensIcons[lens as keyof typeof lensIcons]}</span>
@@ -133,22 +197,18 @@ export function ShareCardButton({ cardId, state, problem, lens, wisdom, createdA
                   </div>
                 </div>
 
-                {/* Wisdom */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-6">
-                  <p className="text-lg leading-relaxed">
-                    {wisdom}
+                <div className="rounded-2xl p-6 mb-6" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+                  <p className="text-base leading-relaxed">
+                    {displayWisdom}
                   </p>
                 </div>
 
-                {/* Problem */}
-                <div className="mb-4 pb-4 border-b border-white/20">
-                  <p className="text-xs opacity-75 mb-1">Your situation:</p>
-                  <p className="text-sm italic">"{problem}"</p>
+                <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                  <p className="text-xs mb-1" style={{ opacity: 0.75 }}>Context:</p>
+                  <p className="text-sm italic">"{displayProblem}"</p>
                 </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-between text-xs opacity-75">
-                  <span>Timeflow</span>
+                <div className="flex items-center justify-between text-xs" style={{ opacity: 0.75 }}>
                   <span>
                     {new Date(createdAt).toLocaleDateString('en-US', {
                       month: 'short',
@@ -157,10 +217,18 @@ export function ShareCardButton({ cardId, state, problem, lens, wisdom, createdA
                     })}
                   </span>
                 </div>
+                
+                <div className="mt-4 pt-4 text-center" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                  <p className="text-xs font-semibold" style={{ opacity: 0.95 }}>
+                    Timeflow App
+                  </p>
+                  <p className="text-xs mt-1" style={{ opacity: 0.75 }}>
+                    Based on the Timeflow concept from the book <span className="italic">Replugged</span>
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Share Options */}
             <div className="space-y-3">
               <button
                 onClick={downloadAsImage}

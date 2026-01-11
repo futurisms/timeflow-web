@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { ShareCardButton } from '../components/ShareCardButton';
 
 const stateColors = {
   rising: 'from-emerald-500 to-emerald-600',
@@ -292,6 +293,15 @@ export default function MyCards() {
               >
                 {/* Action Buttons */}
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <ShareCardButton
+                    cardId={card.id}
+                    state={card.state}
+                    problem={card.problem}
+                    lens={card.lens}
+                    wisdom={card.wisdom}
+                    createdAt={card.created_at}
+                  />
+                  
                   <button
                     onClick={() => handleDeleteCard(card.id)}
                     disabled={deletingId === card.id}
