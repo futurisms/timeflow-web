@@ -171,7 +171,7 @@ export default function ProfilePage() {
 
             <div className="mt-6 pt-6 border-t border-[#e7e5e4]">
               <Link
-                href="/profile/change-password"
+                href="/auth/forgot-password"
                 className="text-[#292524] font-semibold hover:underline"
               >
                 Change Password →
