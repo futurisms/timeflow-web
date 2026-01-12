@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { ShareCardButton } from '../components/ShareCardButton';
+import Link from 'next/link';
 
 const stateColors = {
   rising: 'from-emerald-500 to-emerald-600',
@@ -210,6 +211,29 @@ export default function MyCardsAnimated() {
             )}
           </div>
         </div>
+
+        {/* Mobile App Teaser - Subtle version for My Cards */}
+        {userStats && userStats.cards_saved >= 5 && (
+          <div 
+            className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-indigo-200 rounded-2xl p-6 mb-6"
+            style={{ animation: 'fadeInUp 0.6s ease-out 0.2s both' }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="text-3xl">📱</div>
+              <div className="flex-1">
+                <p className="text-indigo-900 font-semibold">
+                  Mobile app coming soon! Unlimited cards, offline access, and more.
+                </p>
+              </div>
+              <Link
+                href="/profile"
+                className="text-indigo-600 font-semibold hover:underline whitespace-nowrap"
+              >
+                Learn More →
+              </Link>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border-2 border-red-500 rounded-2xl p-4 mb-6">

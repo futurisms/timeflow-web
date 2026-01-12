@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ShareCardButtonProps {
   cardId: number;
@@ -155,13 +156,15 @@ export function ShareCardButton({ cardId, state, problem, lens, wisdom, createdA
         </svg>
       </button>
 
-      {showModal && (
+      {showModal && typeof document !== 'undefined' && createPortal(
         <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9998] p-4"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4"
+          style={{ zIndex: 999999 }}
           onClick={() => setShowModal(false)}
         >
           <div 
-            className="bg-white rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative"
+            style={{ zIndex: 999999 }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
@@ -270,7 +273,8 @@ export function ShareCardButton({ cardId, state, problem, lens, wisdom, createdA
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

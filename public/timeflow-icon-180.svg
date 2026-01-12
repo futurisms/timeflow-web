@@ -1,0 +1,12 @@
+<svg id="icon-180" width="150" height="150" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="gradient180" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#667eea;stop-opacity:1"/>
+                                <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1"/>
+                            </linearGradient>
+                        </defs>
+                        <rect width="180" height="180" rx="40" fill="white"/>
+                        <line x1="28" y1="49" x2="152" y2="49" stroke="#333" stroke-width="3" opacity="0.3"/>
+                        <line x1="28" y1="131" x2="152" y2="131" stroke="#333" stroke-width="3" opacity="0.3"/>
+                        <path d="M 28 90 Q 51 64, 74 90 T 118 90 T 152 90" stroke="url(#gradient180)" stroke-width="11" fill="none" stroke-linecap="round"/>
+                    </svg>

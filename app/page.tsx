@@ -102,8 +102,19 @@ export default function HomePage() {
           <h2 className="text-5xl font-bold text-[#1c1917] mb-6" style={{ fontFamily: 'Georgia, serif' }}>
             Tune Your Timeflow
           </h2>
-          <p className="text-xl text-[#57534e] mb-8 leading-relaxed">
+          <p className="text-xl text-[#57534e] mb-4 leading-relaxed">
             Navigate life's states with philosophical wisdom. Understand where your energy is flowing and receive guidance tailored to your current state.
+          </p>
+          <p className="text-base text-[#78716c] mb-8 italic">
+            Based on the Timeflow concept from the book{' '}
+            <a 
+              href="https://replugged.ai/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="font-semibold hover:underline"
+            >
+              Replugged
+            </a>
           </p>
           <Link
             href="/state-selection"
