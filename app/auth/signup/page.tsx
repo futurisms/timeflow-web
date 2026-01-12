@@ -38,7 +38,7 @@ export default function Signup() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/verify-email`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         }
       });
 
@@ -86,16 +86,16 @@ export default function Signup() {
             <ol className="text-sm text-blue-800 mt-2 space-y-1 list-decimal list-inside">
               <li>Check your email inbox</li>
               <li>Click the verification link</li>
-              <li>Return here to log in</li>
+              <li>You'll be automatically logged in!</li>
             </ol>
           </div>
 
           {/* Actions */}
           <button
-            onClick={() => router.push('/auth/login')}
+            onClick={() => router.push('/')}
             className="w-full bg-[#292524] text-white py-3 rounded-full font-semibold hover:bg-[#1c1917] transition-all mb-4"
           >
-            Go to Login
+            Back to Home
           </button>
 
           <p className="text-xs text-[#57534e]">

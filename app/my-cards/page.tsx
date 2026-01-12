@@ -51,6 +51,21 @@ export default function MyCardsAnimated() {
     checkAuthAndLoadCards();
   }, []);
 
+  // Check for pending card and redirect to save it
+  useEffect(() => {
+    const pendingCard = localStorage.getItem('pendingCard');
+    if (pendingCard) {
+      try {
+        const cardData = JSON.parse(pendingCard);
+        // Redirect back to wisdom card page to save it
+        router.push(`/wisdom-card?state=${cardData.state}&problem=${encodeURIComponent(cardData.problem)}&lens=${cardData.lens}`);
+      } catch (e) {
+        console.error('Failed to parse pending card:', e);
+        localStorage.removeItem('pendingCard');
+      }
+    }
+  }, []);
+
   const checkAuthAndLoadCards = async () => {
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();

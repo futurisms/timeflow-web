@@ -54,6 +54,24 @@ function WisdomCard() {
     checkAuthAndGenerate();
   }, []);
 
+  // Check for pending card after login
+  useEffect(() => {
+    if (isLoggedIn && !saved && !saving) {
+      const pendingCard = localStorage.getItem('pendingCard');
+      if (pendingCard) {
+        try {
+          const cardData = JSON.parse(pendingCard);
+          // If this is the same card, auto-save it
+          if (cardData.state === state && cardData.problem === problem && cardData.lens === lens) {
+            handleSaveCard();
+          }
+        } catch (e) {
+          console.error('Failed to parse pending card:', e);
+        }
+      }
+    }
+  }, [isLoggedIn]);
+
   const checkAuthAndGenerate = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     setIsLoggedIn(!!user);
@@ -93,7 +111,7 @@ function WisdomCard() {
 
   const handleSaveCard = async () => {
     if (!isLoggedIn) {
-      sessionStorage.setItem('pendingCard', JSON.stringify({
+      localStorage.setItem('pendingCard', JSON.stringify({
         state, problem, lens, wisdom
       }));
       setShowLoginPrompt(true);
@@ -117,7 +135,7 @@ function WisdomCard() {
       if (insertError) throw insertError;
 
       setSaved(true);
-      sessionStorage.removeItem('pendingCard');
+      localStorage.removeItem('pendingCard');
       
       setTimeout(() => {
         router.push('/my-cards');
