@@ -223,7 +223,16 @@ export function ShareCardButton({ cardId, state, problem, lens, wisdom, createdA
                     Timeflow App
                   </p>
                   <p className="text-xs mt-1" style={{ opacity: 0.75 }}>
-                    Based on the Timeflow concept from the book <span className="italic">Replugged</span>
+                    Based on the Timeflow concept from the book{' '}
+                    <a 
+                      href="https://replugged.ai/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="italic underline"
+                      style={{ opacity: 0.95 }}
+                    >
+                      Replugged
+                    </a>
                   </p>
                 </div>
               </div>

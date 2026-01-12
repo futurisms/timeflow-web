@@ -21,15 +21,15 @@ const lensIcons = {
   pragmatism: '🔧',
 };
 
-// Sanitize text by replacing special characters with plain equivalents
+// Sanitize text by replacing special characters
 const sanitizeText = (text: string) => {
   return text
-    .replace(/[—–]/g, '-')  // Replace em/en dashes with hyphens
-    .replace(/[""]/g, '"')   // Replace smart quotes with straight quotes
-    .replace(/['']/g, "'")   // Replace smart apostrophes with straight apostrophes
-    .replace(/…/g, '...')    // Replace ellipsis character with three dots
-    .replace(/[‐‑‒–—―]/g, '-') // Replace all dash variants
-    .replace(/[\u2000-\u200B]/g, ' ') // Replace special spaces with normal space
+    .replace(/[—–]/g, '-')
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'")
+    .replace(/…/g, '...')
+    .replace(/[‐‑‒–—―]/g, '-')
+    .replace(/[\u2000-\u200B]/g, ' ')
     .trim();
 };
 
@@ -44,6 +44,7 @@ function WisdomCard() {
   const [error, setError] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [cardRevealed, setCardRevealed] = useState(false);
 
   const state = searchParams?.get('state') || '';
   const problem = searchParams?.get('problem') || '';
@@ -54,11 +55,8 @@ function WisdomCard() {
   }, []);
 
   const checkAuthAndGenerate = async () => {
-    // Check if user is logged in
     const { data: { user } } = await supabase.auth.getUser();
     setIsLoggedIn(!!user);
-
-    // Generate wisdom regardless of login status
     await generateWisdom();
   };
 
@@ -78,10 +76,13 @@ function WisdomCard() {
       }
 
       const data = await response.json();
-      
-      // SANITIZE THE WISDOM TEXT HERE - before saving to state
       const cleanWisdom = sanitizeText(data.wisdom);
       setWisdom(cleanWisdom);
+      
+      // Delay card reveal for dramatic effect
+      setTimeout(() => {
+        setCardRevealed(true);
+      }, 300);
     } catch (err) {
       console.error('Error generating wisdom:', err);
       setError('Failed to generate wisdom. Please try again.');
@@ -92,15 +93,9 @@ function WisdomCard() {
 
   const handleSaveCard = async () => {
     if (!isLoggedIn) {
-      // Store card data in sessionStorage (with sanitized wisdom)
       sessionStorage.setItem('pendingCard', JSON.stringify({
-        state,
-        problem,
-        lens,
-        wisdom  // Already sanitized
+        state, problem, lens, wisdom
       }));
-
-      // Show login prompt instead of redirecting
       setShowLoginPrompt(true);
       return;
     }
@@ -110,38 +105,23 @@ function WisdomCard() {
       setError('');
 
       const { data: { user } } = await supabase.auth.getUser();
-
       if (!user) {
         setShowLoginPrompt(true);
         return;
       }
 
-      // Save the card to Supabase (wisdom is already sanitized)
       const { error: insertError } = await supabase
         .from('wisdom_cards')
-        .insert({
-          user_id: user.id,
-          state,
-          problem,
-          lens,
-          wisdom  // Already sanitized from generateWisdom
-        });
+        .insert({ user_id: user.id, state, problem, lens, wisdom });
 
-      if (insertError) {
-        throw insertError;
-      }
+      if (insertError) throw insertError;
 
-      // Show success state
       setSaved(true);
-
-      // Clear any pending card
       sessionStorage.removeItem('pendingCard');
-
-      // Redirect to My Cards after a delay
+      
       setTimeout(() => {
         router.push('/my-cards');
       }, 1500);
-
     } catch (err) {
       console.error('Error saving card:', err);
       setError('Failed to save card. Please try again.');
@@ -156,11 +136,78 @@ function WisdomCard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center px-8">
-        <div className="text-center">
-          <div className="inline-block w-16 h-16 border-4 border-[#292524] border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-[#57534e] text-lg">Generating your wisdom...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center px-8 relative overflow-hidden">
+        {/* Animated Background Waves */}
+        <div className="absolute inset-0">
+          <div 
+            className="absolute inset-0 opacity-30"
+            style={{
+              background: 'linear-gradient(90deg, transparent, rgba(147, 51, 234, 0.3), transparent)',
+              animation: 'wave 3s ease-in-out infinite',
+            }}
+          />
+          <div 
+            className="absolute inset-0 opacity-20"
+            style={{
+              background: 'linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.3), transparent)',
+              animation: 'wave 4s ease-in-out infinite 0.5s',
+            }}
+          />
         </div>
+
+        {/* Loading Content */}
+        <div className="text-center relative z-10">
+          {/* Animated Circle */}
+          <div className="relative w-32 h-32 mx-auto mb-8">
+            <div 
+              className="absolute inset-0 border-4 border-purple-500 rounded-full"
+              style={{
+                animation: 'pulse 2s ease-in-out infinite',
+                opacity: 0.6,
+              }}
+            />
+            <div 
+              className="absolute inset-0 border-4 border-blue-500 rounded-full"
+              style={{
+                animation: 'pulse 2s ease-in-out infinite 0.5s',
+                opacity: 0.4,
+              }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-5xl">🌊</div>
+            </div>
+          </div>
+
+          <h2 className="text-2xl font-semibold text-white mb-2">
+            Channeling wisdom...
+          </h2>
+          <p className="text-purple-200 text-lg">
+            Tuning into your Timeflow
+          </p>
+        </div>
+
+        {/* Animation Styles */}
+        <style jsx>{`
+          @keyframes wave {
+            0%, 100% {
+              transform: translateX(-100%);
+            }
+            50% {
+              transform: translateX(100%);
+            }
+          }
+
+          @keyframes pulse {
+            0%, 100% {
+              transform: scale(1);
+              opacity: 0.6;
+            }
+            50% {
+              transform: scale(1.1);
+              opacity: 0.3;
+            }
+          }
+        `}</style>
       </div>
     );
   }
@@ -170,8 +217,14 @@ function WisdomCard() {
       <div className="max-w-2xl mx-auto">
         {/* Login Prompt Modal */}
         {showLoginPrompt && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl p-8 max-w-md w-full">
+          <div 
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            style={{ animation: 'fadeIn 0.3s ease-out' }}
+          >
+            <div 
+              className="bg-white rounded-3xl p-8 max-w-md w-full"
+              style={{ animation: 'scaleIn 0.3s ease-out' }}
+            >
               <h2 className="text-2xl font-bold text-[#1c1917] mb-4">Please Log In</h2>
               <p className="text-[#57534e] mb-6">
                 Your card has been saved temporarily. Log in to save it permanently to your account!
@@ -196,7 +249,10 @@ function WisdomCard() {
 
         {/* Success Message */}
         {saved && (
-          <div className="bg-emerald-50 border-2 border-emerald-500 rounded-2xl p-4 mb-6 animate-fade-in">
+          <div 
+            className="bg-emerald-50 border-2 border-emerald-500 rounded-2xl p-4 mb-6"
+            style={{ animation: 'slideDown 0.4s ease-out' }}
+          >
             <div className="flex items-center gap-3">
               <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -224,10 +280,22 @@ function WisdomCard() {
           </div>
         )}
 
-        {/* Wisdom Card */}
-        <div className={`bg-gradient-to-br ${stateColors[state as keyof typeof stateColors] || 'from-gray-500 to-gray-600'} rounded-3xl shadow-2xl p-8 text-white mb-6`}>
+        {/* Wisdom Card with Reveal Animation */}
+        <div 
+          className={`
+            ${stateColors[state as keyof typeof stateColors] || 'from-gray-500 to-gray-600'} 
+            bg-gradient-to-br rounded-3xl shadow-2xl p-8 text-white mb-6
+            transition-all duration-700
+            ${cardRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}
+          `}
+        >
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div 
+            className="flex items-center justify-between mb-6"
+            style={{ 
+              animation: cardRevealed ? 'fadeIn 0.6s ease-out 0.2s both' : 'none'
+            }}
+          >
             <div className="flex items-center gap-3">
               <span className="text-4xl">{lensIcons[lens as keyof typeof lensIcons]}</span>
               <div>
@@ -247,7 +315,12 @@ function WisdomCard() {
           </div>
 
           {/* Wisdom Content */}
-          <div className="space-y-4">
+          <div 
+            className="space-y-4"
+            style={{ 
+              animation: cardRevealed ? 'fadeIn 0.6s ease-out 0.4s both' : 'none'
+            }}
+          >
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
               <p className="text-lg leading-relaxed whitespace-pre-wrap">
                 {wisdom}
@@ -256,14 +329,24 @@ function WisdomCard() {
           </div>
 
           {/* Problem Reference */}
-          <div className="mt-6 pt-6 border-t border-white/20">
+          <div 
+            className="mt-6 pt-6 border-t border-white/20"
+            style={{ 
+              animation: cardRevealed ? 'fadeIn 0.6s ease-out 0.6s both' : 'none'
+            }}
+          >
             <p className="text-xs opacity-75 mb-1">Your situation:</p>
             <p className="text-sm opacity-90 italic">"{problem}"</p>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div 
+          className="flex flex-col sm:flex-row gap-4"
+          style={{ 
+            animation: cardRevealed ? 'fadeIn 0.6s ease-out 0.8s both' : 'none'
+          }}
+        >
           <button
             onClick={handleSaveCard}
             disabled={saving || saved}
@@ -299,6 +382,40 @@ function WisdomCard() {
           </button>
         </div>
       </div>
+
+      {/* Animation Styles */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes scaleIn {
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }

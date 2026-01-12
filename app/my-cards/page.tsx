@@ -35,7 +35,7 @@ interface UserStats {
   cards_created: number;
 }
 
-export default function MyCards() {
+export default function MyCardsAnimated() {
   const router = useRouter();
   const [cards, setCards] = useState<WisdomCard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +44,7 @@ export default function MyCards() {
   const [filter, setFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
   const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [cardsVisible, setCardsVisible] = useState(false);
 
   useEffect(() => {
     checkAuthAndLoadCards();
@@ -59,6 +60,9 @@ export default function MyCards() {
       }
 
       await Promise.all([loadCards(), loadUserStats()]);
+      
+      // Trigger card entrance animations
+      setTimeout(() => setCardsVisible(true), 100);
     } catch (err) {
       console.error('Error checking auth:', err);
       setError('Failed to load cards');
@@ -123,6 +127,7 @@ export default function MyCards() {
 
       if (deleteError) throw deleteError;
 
+      // Animate card removal
       setCards(cards.filter(card => card.id !== cardId));
       await loadUserStats();
     } catch (err) {
@@ -185,7 +190,10 @@ export default function MyCards() {
       </header>
 
       <main className="max-w-7xl mx-auto px-8 py-12">
-        <div className="mb-8">
+        <div 
+          className="mb-8"
+          style={{ animation: 'fadeInUp 0.6s ease-out' }}
+        >
           <h2 className="text-4xl font-bold text-[#1c1917] mb-2">My Wisdom Cards</h2>
           <div className="flex items-center gap-6 text-[#57534e]">
             <p>
@@ -210,7 +218,10 @@ export default function MyCards() {
         )}
 
         {cards.length > 0 && (
-          <div className="flex flex-col sm:flex-row gap-4 mb-8">
+          <div 
+            className="flex flex-col sm:flex-row gap-4 mb-8"
+            style={{ animation: 'fadeInUp 0.6s ease-out 0.1s both' }}
+          >
             <div className="flex-1">
               <label className="block text-sm font-medium text-[#1c1917] mb-2">
                 Filter by
@@ -218,7 +229,7 @@ export default function MyCards() {
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="w-full px-4 py-3 border border-[#e7e5e4] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#292524] bg-white"
+                className="w-full px-4 py-3 border border-[#e7e5e4] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#292524] bg-white transition-all"
               >
                 <option value="all">All Cards</option>
                 <optgroup label="States">
@@ -248,7 +259,7 @@ export default function MyCards() {
                   setSortBy(e.target.value as 'newest' | 'oldest');
                   loadCards();
                 }}
-                className="w-full px-4 py-3 border border-[#e7e5e4] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#292524] bg-white"
+                className="w-full px-4 py-3 border border-[#e7e5e4] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#292524] bg-white transition-all"
               >
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
@@ -258,7 +269,10 @@ export default function MyCards() {
         )}
 
         {filteredCards.length === 0 ? (
-          <div className="text-center py-20">
+          <div 
+            className="text-center py-20"
+            style={{ animation: 'fadeInUp 0.8s ease-out' }}
+          >
             <div className="text-6xl mb-4">📚</div>
             <h3 className="text-2xl font-bold text-[#1c1917] mb-2">
               {filter === 'all' ? 'No cards yet' : 'No cards match your filter'}
@@ -286,10 +300,21 @@ export default function MyCards() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCards.map((card) => (
+            {filteredCards.map((card, index) => (
               <div
                 key={card.id}
-                className={`bg-gradient-to-br ${stateColors[card.state as keyof typeof stateColors] || 'from-gray-500 to-gray-600'} rounded-2xl shadow-lg p-6 text-white relative group hover:shadow-2xl transition-all`}
+                className={`
+                  bg-gradient-to-br ${stateColors[card.state as keyof typeof stateColors] || 'from-gray-500 to-gray-600'} 
+                  rounded-2xl shadow-lg p-6 text-white relative group 
+                  hover:shadow-2xl hover:scale-105 transition-all duration-300
+                  ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}
+                `}
+                style={{
+                  animation: cardsVisible ? `fadeInUp 0.5s ease-out ${index * 0.1}s both` : 'none',
+                  transition: deletingId === card.id ? 'all 0.5s ease-out' : undefined,
+                  transform: deletingId === card.id ? 'scale(0.8)' : undefined,
+                  opacity: deletingId === card.id ? 0 : undefined,
+                }}
               >
                 {/* Action Buttons */}
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -352,10 +377,13 @@ export default function MyCards() {
         )}
 
         {cards.length > 0 && (
-          <div className="mt-12 text-center">
+          <div 
+            className="mt-12 text-center"
+            style={{ animation: 'fadeInUp 0.6s ease-out 0.4s both' }}
+          >
             <button
               onClick={() => router.push('/state-selection')}
-              className="bg-[#292524] text-white px-8 py-4 rounded-full font-semibold hover:bg-[#1c1917] transition-all inline-flex items-center gap-2"
+              className="bg-[#292524] text-white px-8 py-4 rounded-full font-semibold hover:bg-[#1c1917] hover:scale-105 transition-all inline-flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -365,6 +393,20 @@ export default function MyCards() {
           </div>
         )}
       </main>
+
+      {/* Animation Styles */}
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }
