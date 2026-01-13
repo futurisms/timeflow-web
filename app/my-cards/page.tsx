@@ -118,10 +118,18 @@ export default function MyCardsAnimated() {
         .eq('user_id', user.id)
         .single();
 
-      if (error) throw error;
-      setUserStats(data);
+      // If no stats exist yet, that's okay - user just signed up
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading stats:', error);
+        return;
+      }
+
+      // Set stats or use defaults
+      setUserStats(data || { cards_saved: 0, cards_created: 0 });
     } catch (err) {
       console.error('Error loading stats:', err);
+      // Set default stats if error
+      setUserStats({ cards_saved: 0, cards_created: 0 });
     }
   };
 
