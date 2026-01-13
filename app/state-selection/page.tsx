@@ -61,13 +61,6 @@ export default function StateSelectionAnimated() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-stone-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-stone-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-8 py-4">
-          <h1 className="text-2xl font-bold text-stone-900">Timeflow</h1>
-        </div>
-      </header>
-
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-8 py-16">
         {/* Title Section with Animation */}

@@ -1,100 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
 export default function HomePage() {
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkOnboardingAndAuth();
+    checkOnboarding();
   }, []);
 
-  const checkOnboardingAndAuth = async () => {
+  const checkOnboarding = () => {
     // Check if user has completed onboarding
     const onboardingComplete = localStorage.getItem('timeflow_onboarding_complete');
     
     if (!onboardingComplete) {
       // First-time user - redirect to onboarding
       router.push('/onboarding');
-      return;
     }
-
-    // Check auth status
-    const { data: { user } } = await supabase.auth.getUser();
-    setIsLoggedIn(!!user);
-    setLoading(false);
   };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setIsLoggedIn(false);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block w-16 h-16 border-4 border-[#292524] border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-[#57534e]">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#faf9f7]">
-      {/* Header */}
-      <header className="bg-white border-b border-[#e7e5e4]">
-        <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <h1 className="text-2xl font-bold text-[#1c1917]">Timeflow</h1>
-            {isLoggedIn && (
-              <nav className="hidden sm:flex gap-6">
-                <Link href="/" className="text-[#292524] font-semibold">
-                  Home
-                </Link>
-                <Link href="/my-cards" className="text-[#57534e] hover:text-[#292524] transition-colors">
-                  My Cards
-                </Link>
-                <Link href="/profile" className="text-[#57534e] hover:text-[#292524] transition-colors">
-                  Profile
-                </Link>
-              </nav>
-            )}
-          </div>
-          <div className="flex items-center gap-4">
-            {isLoggedIn ? (
-              <button
-                onClick={handleLogout}
-                className="text-[#57534e] hover:text-[#292524] transition-colors text-sm"
-              >
-                Logout
-              </button>
-            ) : (
-              <>
-                <Link
-                  href="/auth/login"
-                  className="text-[#57534e] hover:text-[#292524] transition-colors text-sm font-semibold"
-                >
-                  Log In
-                </Link>
-                <Link
-                  href="/auth/signup"
-                  className="bg-[#292524] text-white px-6 py-2 rounded-full text-sm font-semibold hover:bg-[#1c1917] transition-all"
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-8 py-20">
         <div className="text-center max-w-3xl mx-auto mb-16">

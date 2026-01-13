@@ -19,13 +19,14 @@ function LensSelectionContent() {
   const [selectedLens, setSelectedLens] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleGenerate = async () => {
-    if (selectedLens) {
-      setIsGenerating(true);
-      setTimeout(() => {
-        router.push(`/wisdom-card?state=${state}&problem=${problem}&lens=${selectedLens}`);
-      }, 1500);
-    }
+  const handleLensSelect = (lensId: string) => {
+    setSelectedLens(lensId);
+    setIsGenerating(true);
+    
+    // Auto-advance after selection with a brief delay for visual feedback
+    setTimeout(() => {
+      router.push(`/wisdom-card?state=${state}&problem=${problem}&lens=${lensId}`);
+    }, 500);
   };
 
   return (
@@ -34,24 +35,69 @@ function LensSelectionContent() {
         <h1 className="text-4xl font-bold text-[#1c1917] mb-4 text-center">Choose your philosophical lens</h1>
         <p className="text-lg text-[#57534e] text-center">Each tradition offers unique wisdom for your situation</p>
       </div>
+      
       <div className="max-w-3xl w-full grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {philosophicalLenses.map((lens) => (
-          <button key={lens.id} onClick={() => setSelectedLens(lens.id)} className={`p-6 rounded-2xl text-left transition-all ${selectedLens === lens.id ? 'bg-[#292524] ring-4 ring-offset-4 ring-[#292524] scale-105' : 'bg-white hover:shadow-lg'}`}>
+          <button 
+            key={lens.id} 
+            onClick={() => handleLensSelect(lens.id)} 
+            disabled={isGenerating}
+            className={`p-6 rounded-2xl text-left transition-all ${
+              selectedLens === lens.id 
+                ? 'bg-[#292524] ring-4 ring-offset-4 ring-[#292524] scale-105' 
+                : isGenerating 
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'bg-white hover:shadow-lg hover:scale-105'
+            }`}
+          >
             <div className="text-4xl mb-3">{lens.icon}</div>
-            <h3 className={`text-xl font-bold mb-2 ${selectedLens === lens.id ? 'text-white' : 'text-[#1c1917]'}`}>{lens.name}</h3>
-            <p className={`text-sm mb-3 ${selectedLens === lens.id ? 'text-white/90' : 'text-[#57534e]'}`}>{lens.description}</p>
-            <p className={`text-xs italic ${selectedLens === lens.id ? 'text-white/70' : 'text-[#78716c]'}`}>{lens.philosopher}</p>
+            <h3 className={`text-xl font-bold mb-2 ${selectedLens === lens.id ? 'text-white' : 'text-[#1c1917]'}`}>
+              {lens.name}
+            </h3>
+            <p className={`text-sm mb-3 ${selectedLens === lens.id ? 'text-white/90' : 'text-[#57534e]'}`}>
+              {lens.description}
+            </p>
+            <p className={`text-xs italic ${selectedLens === lens.id ? 'text-white/70' : 'text-[#78716c]'}`}>
+              {lens.philosopher}
+            </p>
+            
+            {/* Loading indicator on selected lens */}
+            {selectedLens === lens.id && (
+              <div className="mt-3 flex items-center gap-2 text-white/90">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm">Generating wisdom...</span>
+              </div>
+            )}
           </button>
         ))}
       </div>
-      <div className="flex gap-4">
-        <button onClick={() => router.back()} disabled={isGenerating} className="px-8 py-3 rounded-full text-base font-semibold bg-white border-2 border-[#e7e5e4] text-[#57534e] hover:border-[#292524] hover:text-[#1c1917] transition-all disabled:opacity-50">← Back</button>
-        <button onClick={handleGenerate} disabled={!selectedLens || isGenerating} className={`px-12 py-3 rounded-full text-base font-semibold transition-all ${selectedLens && !isGenerating ? 'bg-[#292524] text-white hover:bg-[#1c1917] shadow-lg' : 'bg-[#e7e5e4] text-[#78716c] cursor-not-allowed'}`}>{isGenerating ? 'Generating...' : 'Generate Wisdom Card →'}</button>
-      </div>
+
+      {/* Back button - only show when not generating */}
+      {!isGenerating && (
+        <div className="flex gap-4">
+          <button 
+            onClick={() => router.back()} 
+            className="px-8 py-3 rounded-full text-base font-semibold bg-white border-2 border-[#e7e5e4] text-[#57534e] hover:border-[#292524] hover:text-[#1c1917] transition-all"
+          >
+            ← Back
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 export default function LensSelection() {
-  return <Suspense fallback={<div className="min-h-screen bg-[#faf9f7] flex items-center justify-center">Loading...</div>}><LensSelectionContent /></Suspense>;
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block w-16 h-16 border-4 border-[#292524] border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-[#57534e]">Loading...</p>
+        </div>
+      </div>
+    }>
+      <LensSelectionContent />
+    </Suspense>
+  );
 }

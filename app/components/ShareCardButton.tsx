@@ -33,13 +33,15 @@ export function ShareCardButton({ cardId, state, problem, lens, wisdom, createdA
   const [showModal, setShowModal] = useState(false);
 
   // Sanitize text by replacing special characters with plain equivalents
-  const sanitizeText = (text: string) => {
+  const sanitizeText = (text: string | null | undefined) => {
+    if (!text) return ''; // Handle null/undefined
+    
     return text
       .replace(/[—–]/g, '-')  // Replace em/en dashes with hyphens
       .replace(/[""]/g, '"')   // Replace smart quotes with straight quotes
       .replace(/['']/g, "'")   // Replace smart apostrophes with straight apostrophes
       .replace(/…/g, '...')    // Replace ellipsis character with three dots
-      .replace(/[‐‑‒–—―]/g, '-') // Replace all dash variants
+      .replace(/[‒–—―]/g, '-') // Replace all dash variants
       .replace(/[\u2000-\u200B]/g, ' ') // Replace special spaces with normal space
       .trim();
   };

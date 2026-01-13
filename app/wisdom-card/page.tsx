@@ -28,7 +28,7 @@ const sanitizeText = (text: string) => {
     .replace(/[""]/g, '"')
     .replace(/['']/g, "'")
     .replace(/…/g, '...')
-    .replace(/[‐‑‒–—―]/g, '-')
+    .replace(/[‒–—―]/g, '-')
     .replace(/[\u2000-\u200B]/g, ' ')
     .trim();
 };
@@ -54,15 +54,15 @@ function WisdomCard() {
     checkAuthAndGenerate();
   }, []);
 
-  // Check for pending card after login
+  // Check for pending card after login - auto-save if this is the same card
   useEffect(() => {
-    if (isLoggedIn && !saved && !saving) {
+    if (isLoggedIn && !saved && !saving && wisdom) {
       const pendingCard = localStorage.getItem('pendingCard');
       if (pendingCard) {
         try {
           const cardData = JSON.parse(pendingCard);
           // If this is the same card, auto-save it
-          if (cardData.state === state && cardData.problem === problem && cardData.lens === lens) {
+          if (cardData.state === state && cardData.problem === problem && cardData.lens === lens && cardData.wisdom) {
             handleSaveCard();
           }
         } catch (e) {
@@ -70,11 +70,32 @@ function WisdomCard() {
         }
       }
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, wisdom]);
 
   const checkAuthAndGenerate = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     setIsLoggedIn(!!user);
+    
+    // Check if there's a pending card with wisdom already generated
+    const pendingCard = localStorage.getItem('pendingCard');
+    if (pendingCard) {
+      try {
+        const cardData = JSON.parse(pendingCard);
+        // If this matches the current card and has wisdom, use it
+        if (cardData.state === state && cardData.problem === problem && cardData.lens === lens && cardData.wisdom) {
+          setWisdom(cardData.wisdom);
+          setLoading(false);
+          setTimeout(() => {
+            setCardRevealed(true);
+          }, 300);
+          return;
+        }
+      } catch (e) {
+        console.error('Failed to parse pending card:', e);
+      }
+    }
+    
+    // Otherwise generate new wisdom
     await generateWisdom();
   };
 

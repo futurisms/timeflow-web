@@ -58,11 +58,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
-  };
-
   const handleDeleteAccount = async () => {
     if (!showDeleteConfirm) {
       setShowDeleteConfirm(true);
@@ -113,32 +108,6 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#faf9f7]">
-      {/* Header */}
-      <header className="bg-white border-b border-[#e7e5e4] sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <h1 className="text-2xl font-bold text-[#1c1917]">Timeflow</h1>
-            <nav className="hidden sm:flex gap-6">
-              <Link href="/" className="text-[#57534e] hover:text-[#292524] transition-colors">
-                Home
-              </Link>
-              <Link href="/my-cards" className="text-[#57534e] hover:text-[#292524] transition-colors">
-                My Cards
-              </Link>
-              <Link href="/profile" className="text-[#292524] font-semibold">
-                Profile
-              </Link>
-            </nav>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="text-[#57534e] hover:text-[#292524] transition-colors text-sm"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
-
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-8 py-12">
         <div className="mb-8">
