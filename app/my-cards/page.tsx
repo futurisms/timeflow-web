@@ -340,7 +340,14 @@ export default function MyCardsAnimated() {
 
                   {/* Action Buttons */}
                   <div className="flex gap-2">
-                    <ShareCardButton card={card} />
+                    <ShareCardButton 
+                      cardId={card.id}
+                      state={card.state}
+                      problem={card.problem}
+                      lens={card.lens}
+                      wisdom={card.wisdom}
+                      createdAt={card.created_at}
+                    />
                     <button
                       onClick={() => handleDelete(card.id)}
                       disabled={deletingId === card.id}
