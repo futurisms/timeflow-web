@@ -3,261 +3,195 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
 
-interface UserStats {
-  cards_saved: number;
-  cards_created: number;
-}
-
-interface UserProfile {
-  email: string;
-  created_at: string;
-}
+const MAX_CARDS = 5;
 
 export default function ProfilePage() {
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [stats, setStats] = useState({ cards_created: 0, cards_saved: 0 });
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [stats, setStats] = useState<UserStats | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    loadProfile();
+    loadUserData();
   }, []);
 
-  const loadProfile = async () => {
+  const loadUserData = async () => {
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
       
-      if (authError || !user) {
+      if (!authUser) {
         router.push('/auth/login');
         return;
       }
 
-      setProfile({
-        email: user.email || '',
-        created_at: user.created_at || '',
-      });
+      setUser(authUser);
 
-      // Load user stats
-      const { data: statsData } = await supabase
+      // Load stats
+      const { data: userStats } = await supabase
         .from('user_stats')
-        .select('cards_saved, cards_created')
-        .eq('user_id', user.id)
+        .select('*')
+        .eq('user_id', authUser.id)
         .single();
 
-      if (statsData) {
-        setStats(statsData);
+      if (userStats) {
+        setStats({
+          cards_created: userStats.cards_created || 0,
+          cards_saved: userStats.cards_saved || 0,
+        });
       }
-    } catch (err) {
-      console.error('Error loading profile:', err);
+    } catch (error) {
+      console.error('Error loading user data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!showDeleteConfirm) {
-      setShowDeleteConfirm(true);
-      return;
-    }
-
-    try {
-      setDeleting(true);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Delete all user's cards
-      await supabase
-        .from('wisdom_cards')
-        .delete()
-        .eq('user_id', user.id);
-
-      // Delete user stats
-      await supabase
-        .from('user_stats')
-        .delete()
-        .eq('user_id', user.id);
-
-      // Sign out (Supabase doesn't allow deleting own account via client)
-      await supabase.auth.signOut();
-      
-      alert('Account data deleted. Please contact support to fully delete your account.');
-      router.push('/');
-    } catch (err) {
-      console.error('Error deleting account:', err);
-      alert('Failed to delete account. Please try again.');
-    } finally {
-      setDeleting(false);
-    }
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block w-16 h-16 border-4 border-[#292524] border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-[#57534e]">Loading profile...</p>
+          <div className="text-4xl mb-4">🌊</div>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
 
+  const remainingCards = MAX_CARDS - stats.cards_created;
+  const isAtLimit = stats.cards_created >= MAX_CARDS;
+
   return (
-    <div className="min-h-screen bg-[#faf9f7]">
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-8 py-12">
-        <div className="mb-8">
-          <h2 className="text-4xl font-bold text-[#1c1917] mb-2">My Profile</h2>
-          <p className="text-[#57534e]">Manage your account settings and view your stats</p>
+    <div className="min-h-screen bg-[#faf9f7] py-12 px-4">
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-4xl font-serif font-bold text-[#292524] mb-8 text-center">
+          Your Profile
+        </h1>
+
+        {/* Card Limit Status - Prominent Display */}
+        <div className={`mb-8 rounded-3xl p-8 text-center ${
+          isAtLimit 
+            ? 'bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200' 
+            : remainingCards <= 2
+            ? 'bg-gradient-to-br from-orange-50 to-yellow-50 border-2 border-orange-200'
+            : 'bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200'
+        }`}>
+          <div className="text-5xl mb-4">
+            {isAtLimit ? '🚫' : remainingCards <= 2 ? '⚠️' : '✨'}
+          </div>
+          
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            {stats.cards_created}/{MAX_CARDS} Cards Created
+          </h2>
+          
+          {isAtLimit ? (
+            <>
+              <p className="text-lg text-red-800 mb-6">
+                You've reached your limit
+              </p>
+              <button
+                onClick={() => router.push('/mobile-waitlist')}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-full font-semibold text-lg hover:shadow-lg transition-all"
+              >
+                Join Waitlist for Unlimited Cards
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-lg text-gray-700 mb-2">
+                {remainingCards} card{remainingCards !== 1 ? 's' : ''} remaining
+              </p>
+              {remainingCards <= 2 && (
+                <p className="text-sm text-gray-600 mb-4">
+                  💫 Almost at your limit! Want unlimited? Mobile app coming soon.
+                </p>
+              )}
+              <button
+                onClick={() => router.push('/state-selection')}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-3 rounded-full font-semibold hover:shadow-lg transition-all"
+              >
+                Create New Card
+              </button>
+            </>
+          )}
         </div>
 
-        {/* Mobile App Teaser Banner - Shows after 5 cards */}
-        {stats && stats.cards_created >= 5 && (
-          <div className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-3xl shadow-xl p-8 mb-6 text-white">
-            <div className="flex items-start gap-4">
-              <div className="text-5xl">🎉</div>
-              <div className="flex-1">
-                <h3 className="text-2xl font-bold mb-2">
-                  You've created {stats.cards_created} wisdom cards!
-                </h3>
-                <p className="text-purple-100 text-lg mb-4">
-                  Loving Timeflow? Our mobile app is coming soon with unlimited cards, 
-                  offline access, and more features designed for iOS & Android.
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-semibold">
-                    📱 iOS & Android
-                  </div>
-                  <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-semibold">
-                    ♾️ Unlimited Cards
-                  </div>
-                  <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-semibold">
-                    ⚡ Offline Access
-                  </div>
-                </div>
-              </div>
+        {/* User Info */}
+        <div className="bg-white rounded-2xl p-6 mb-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Information</h3>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm text-gray-600">Email</label>
+              <p className="text-gray-900">{user?.email}</p>
             </div>
+            <div>
+              <label className="text-sm text-gray-600">Member Since</label>
+              <p className="text-gray-900">
+                {new Date(user?.created_at).toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="bg-white rounded-2xl p-6 mb-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Activity</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
+              <div className="text-3xl font-bold text-purple-600">{stats.cards_created}</div>
+              <div className="text-sm text-gray-600 mt-1">Cards Created</div>
+            </div>
+            <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
+              <div className="text-3xl font-bold text-green-600">{stats.cards_saved}</div>
+              <div className="text-sm text-gray-600 mt-1">Cards Saved</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile App Promo */}
+        {!isAtLimit && (
+          <div className="bg-gradient-to-r from-purple-100 to-blue-100 rounded-2xl p-6 mb-6 border-2 border-purple-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              📱 Mobile App Coming Soon
+            </h3>
+            <p className="text-gray-700 mb-4 text-sm">
+              Get unlimited cards, AI-generated images, offline access, and more!
+            </p>
+            <button
+              onClick={() => router.push('/mobile-waitlist')}
+              className="text-purple-700 font-semibold text-sm hover:underline"
+            >
+              Learn More →
+            </button>
           </div>
         )}
 
-        <div className="grid gap-6">
-          {/* Account Information */}
-          <div className="bg-white rounded-3xl shadow-lg p-8">
-            <h3 className="text-2xl font-bold text-[#1c1917] mb-6">Account Information</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[#57534e] mb-1">Email</label>
-                <p className="text-lg text-[#1c1917]">{profile?.email}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#57534e] mb-1">Member Since</label>
-                <p className="text-lg text-[#1c1917]">
-                  {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  }) : 'Unknown'}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 pt-6 border-t border-[#e7e5e4]">
-              <Link
-                href="/auth/forgot-password"
-                className="text-[#292524] font-semibold hover:underline"
-              >
-                Change Password →
-              </Link>
-            </div>
-          </div>
-
-          {/* Usage Stats */}
-          <div className="bg-white rounded-3xl shadow-lg p-8">
-            <h3 className="text-2xl font-bold text-[#1c1917] mb-6">Your Stats</h3>
-            
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-emerald-50 rounded-2xl p-6 text-center">
-                <div className="text-4xl font-bold text-emerald-600 mb-2">
-                  {stats?.cards_saved || 0}
-                </div>
-                <div className="text-sm text-[#57534e]">Cards Saved</div>
-              </div>
-
-              <div className="bg-blue-50 rounded-2xl p-6 text-center">
-                <div className="text-4xl font-bold text-blue-600 mb-2">
-                  {stats?.cards_created || 0}
-                </div>
-                <div className="text-sm text-[#57534e]">Cards Created</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="bg-white rounded-3xl shadow-lg p-8">
-            <h3 className="text-2xl font-bold text-[#1c1917] mb-6">Quick Actions</h3>
-            
-            <div className="space-y-4">
-              <Link
-                href="/my-cards"
-                className="block w-full bg-[#292524] text-white py-4 rounded-full font-semibold hover:bg-[#1c1917] transition-all text-center"
-              >
-                View My Cards
-              </Link>
-
-              <Link
-                href="/state-selection"
-                className="block w-full bg-white border-2 border-[#292524] text-[#292524] py-4 rounded-full font-semibold hover:bg-[#faf9f7] transition-all text-center"
-              >
-                Create New Card
-              </Link>
-            </div>
-          </div>
-
-          {/* Danger Zone */}
-          <div className="bg-white border-2 border-red-200 rounded-3xl shadow-lg p-8">
-            <h3 className="text-2xl font-bold text-red-600 mb-2">Danger Zone</h3>
-            <p className="text-[#57534e] mb-6">
-              Once you delete your account, there is no going back. Please be certain.
-            </p>
-            
-            {!showDeleteConfirm ? (
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="bg-red-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-red-700 transition-all"
-              >
-                Delete Account
-              </button>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-red-600 font-semibold">
-                  Are you absolutely sure? This will delete all your wisdom cards.
-                </p>
-                <div className="flex gap-4">
-                  <button
-                    onClick={handleDeleteAccount}
-                    disabled={deleting}
-                    className="bg-red-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-red-700 transition-all disabled:opacity-50"
-                  >
-                    {deleting ? 'Deleting...' : 'Yes, Delete My Account'}
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="bg-white border-2 border-[#e7e5e4] text-[#292524] px-6 py-3 rounded-full font-semibold hover:bg-[#faf9f7] transition-all"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+        {/* Actions */}
+        <div className="space-y-3">
+          <button
+            onClick={() => router.push('/my-cards')}
+            className="w-full px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-full font-semibold hover:bg-gray-50 transition-all"
+          >
+            View My Cards
+          </button>
+          
+          <button
+            onClick={handleSignOut}
+            className="w-full px-6 py-3 bg-white border-2 border-red-300 text-red-600 rounded-full font-semibold hover:bg-red-50 transition-all"
+          >
+            Sign Out
+          </button>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

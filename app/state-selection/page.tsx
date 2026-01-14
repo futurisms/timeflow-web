@@ -1,227 +1,169 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
-const states = [
-  {
-    id: 'rising',
-    name: 'Rising',
-    emoji: '📈',
-    description: 'Moving toward clarity and purpose',
-    gradient: 'from-emerald-400 to-emerald-600',
-    color: 'emerald',
-  },
-  {
-    id: 'falling',
-    name: 'Falling',
-    emoji: '📉',
-    description: 'Experiencing decline or loss',
-    gradient: 'from-red-400 to-red-600',
-    color: 'red',
-  },
-  {
-    id: 'turbulent',
-    name: 'Turbulent',
-    emoji: '🌪️',
-    description: 'Caught in chaos and uncertainty',
-    gradient: 'from-amber-400 to-amber-600',
-    color: 'amber',
-  },
-  {
-    id: 'stuck',
-    name: 'Stuck',
-    emoji: '🔒',
-    description: 'Trapped in patterns or inertia',
-    gradient: 'from-slate-400 to-slate-600',
-    color: 'slate',
-  },
-  {
-    id: 'grounded',
-    name: 'Grounded',
-    emoji: '⚓',
-    description: 'Centered and at peace',
-    gradient: 'from-blue-400 to-blue-600',
-    color: 'blue',
-  },
+const STATES = [
+  { id: 'rising', name: 'Rising', emoji: '⬆️', gradient: 'from-green-400 to-emerald-500', description: 'Energized, growing, expanding' },
+  { id: 'falling', name: 'Falling', emoji: '⬇️', gradient: 'from-red-400 to-rose-500', description: 'Declining, contracting, diminishing' },
+  { id: 'turbulent', name: 'Turbulent', emoji: '🌪️', gradient: 'from-orange-400 to-amber-500', description: 'Chaotic, unstable, unpredictable' },
+  { id: 'stuck', name: 'Stuck', emoji: '⏸️', gradient: 'from-gray-400 to-slate-500', description: 'Stagnant, blocked, immobile' },
+  { id: 'grounded', name: 'Grounded', emoji: '🏔️', gradient: 'from-blue-400 to-indigo-500', description: 'Stable, centered, balanced' },
 ];
 
-export default function StateSelectionAnimated() {
+const MAX_CARDS = 5;
+
+export default function StateSelectionPage() {
   const router = useRouter();
   const [selectedState, setSelectedState] = useState<string | null>(null);
-  const [hoveredState, setHoveredState] = useState<string | null>(null);
+  const [cardsCreated, setCardsCreated] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    checkUserAndCards();
+  }, []);
+
+  const checkUserAndCards = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        // Not logged in - allow creation but they'll need to login to save
+        setLoading(false);
+        return;
+      }
+
+      setUserId(user.id);
+
+      // Check how many cards they've created
+      const { data: stats } = await supabase
+        .from('user_stats')
+        .select('cards_created')
+        .eq('user_id', user.id)
+        .single();
+
+      const created = stats?.cards_created || 0;
+      setCardsCreated(created);
+
+      // If they've hit the limit, redirect to waitlist
+      if (created >= MAX_CARDS) {
+        router.push('/mobile-waitlist');
+        return;
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error checking cards:', error);
+      setLoading(false);
+    }
+  };
 
   const handleStateSelect = (stateId: string) => {
     setSelectedState(stateId);
-    // Add a small delay for animation before navigating
+    // Auto-advance after selection
     setTimeout(() => {
       router.push(`/problem-input?state=${stateId}`);
-    }, 300);
+    }, 500);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4">🌊</div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const remainingCards = userId ? MAX_CARDS - cardsCreated : MAX_CARDS;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-stone-50">
-      {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-8 py-16">
-        {/* Title Section with Animation */}
-        <div 
-          className="text-center mb-16"
-          style={{
-            animation: 'fadeInUp 0.8s ease-out',
-          }}
-        >
-          <h2 
-            className="text-5xl font-bold text-stone-900 mb-4"
-            style={{ fontFamily: 'Georgia, serif' }}
-          >
-            Where are you right now?
-          </h2>
-          <p className="text-xl text-stone-600">
-            Select the state that best describes your current energy
+    <div className="min-h-screen bg-[#faf9f7] py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header with Card Limit */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-[#292524] mb-4">
+            How does your energy feel?
+          </h1>
+          <p className="text-lg text-gray-600 mb-6">
+            Choose the state that best describes your current flow
           </p>
+          
+          {/* Card Limit Badge */}
+          {userId ? (
+            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
+              remainingCards <= 2 ? 'bg-red-100 text-red-800' : 
+              remainingCards <= 3 ? 'bg-orange-100 text-orange-800' : 
+              'bg-blue-100 text-blue-800'
+            }`}>
+              <span className="font-semibold">{cardsCreated}/{MAX_CARDS} cards created</span>
+              {remainingCards > 0 && (
+                <span className="text-sm">• {remainingCards} remaining</span>
+              )}
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-100 text-purple-800">
+              <span className="text-sm">💡 Free tier: Create up to {MAX_CARDS} cards</span>
+            </div>
+          )}
+
+          {remainingCards <= 2 && remainingCards > 0 && (
+            <p className="text-sm text-gray-600 mt-3">
+              💫 Almost at your limit! Want unlimited cards? Mobile app coming soon.
+            </p>
+          )}
         </div>
 
-        {/* State Cards Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {states.map((state, index) => (
+        {/* State Cards */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {STATES.map((state) => (
             <button
               key={state.id}
               onClick={() => handleStateSelect(state.id)}
-              onMouseEnter={() => setHoveredState(state.id)}
-              onMouseLeave={() => setHoveredState(null)}
               disabled={selectedState !== null}
-              className={`
-                group relative bg-white rounded-3xl p-8 
-                border-2 transition-all duration-300
-                ${selectedState === state.id 
-                  ? 'border-stone-900 shadow-2xl scale-105' 
-                  : selectedState 
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'border-stone-200 hover:border-stone-900 hover:shadow-xl hover:scale-105'
-                }
-              `}
-              style={{
-                animation: `fadeInUp 0.6s ease-out ${index * 0.1}s both`,
-              }}
+              className={`group relative p-8 rounded-3xl text-left transition-all duration-300 ${
+                selectedState === state.id
+                  ? 'scale-105 shadow-2xl'
+                  : selectedState === null
+                  ? 'hover:scale-105 hover:shadow-xl'
+                  : 'opacity-50'
+              } bg-gradient-to-br ${state.gradient} text-white disabled:cursor-not-allowed`}
             >
-              {/* Gradient Background on Hover */}
-              <div 
-                className={`
-                  absolute inset-0 rounded-3xl bg-gradient-to-br ${state.gradient}
-                  opacity-0 transition-opacity duration-300
-                  ${hoveredState === state.id ? 'opacity-10' : ''}
-                `}
-              />
-
-              {/* Content */}
-              <div className="relative z-10">
-                {/* Emoji with Animation */}
-                <div 
-                  className={`
-                    text-6xl mb-4 transition-transform duration-300
-                    ${hoveredState === state.id ? 'scale-110 rotate-6' : ''}
-                  `}
-                >
-                  {state.emoji}
+              {/* Loading Overlay */}
+              {selectedState === state.id && (
+                <div className="absolute inset-0 bg-white/20 rounded-3xl flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
                 </div>
+              )}
 
-                {/* State Name */}
-                <h3 className="text-2xl font-bold text-stone-900 mb-2">
-                  {state.name}
-                </h3>
+              <div className="text-5xl mb-4">{state.emoji}</div>
+              <h3 className="text-2xl font-bold mb-2">{state.name}</h3>
+              <p className="text-white/90">{state.description}</p>
 
-                {/* Description */}
-                <p className="text-stone-600">
-                  {state.description}
-                </p>
-
-                {/* Selection Indicator */}
-                {selectedState === state.id && (
-                  <div 
-                    className="absolute top-4 right-4"
-                    style={{ animation: 'scaleIn 0.3s ease-out' }}
-                  >
-                    <svg 
-                      className="w-8 h-8 text-emerald-600" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth={3} 
-                        d="M5 13l4 4L19 7" 
-                      />
-                    </svg>
-                  </div>
-                )}
+              <div className="mt-4 flex items-center text-white/80 text-sm">
+                <span>Select →</span>
               </div>
-
-              {/* Animated Border on Hover */}
-              <div 
-                className={`
-                  absolute inset-0 rounded-3xl border-2 border-transparent
-                  transition-all duration-300
-                  ${hoveredState === state.id ? `border-${state.color}-500` : ''}
-                `}
-              />
             </button>
           ))}
         </div>
 
-        {/* Info Card */}
-        <div 
-          className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-3xl p-8 text-center"
-          style={{
-            animation: 'fadeInUp 0.8s ease-out 0.6s both',
-          }}
-        >
-          <p className="text-stone-700 text-lg">
-            💡 <strong>Not sure?</strong> Choose the state that resonates most with how you feel right now. 
-            There's no wrong answer.
-          </p>
-        </div>
-      </main>
-
-      {/* Keyframe Animations */}
-      <style jsx>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes scaleIn {
-          from {
-            opacity: 0;
-            transform: scale(0.5);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0px);
-          }
-          50% {
-            transform: translateY(-10px);
-          }
-        }
-
-        /* Add subtle floating animation on hover */
-        button:hover .emoji {
-          animation: float 2s ease-in-out infinite;
-        }
-      `}</style>
+        {/* Info Card - Only show if not logged in */}
+        {!userId && (
+          <div className="mt-8 bg-white rounded-2xl p-6 border-2 border-blue-200">
+            <h3 className="font-semibold text-gray-900 mb-2">
+              💡 Note: Free Tier Limit
+            </h3>
+            <p className="text-gray-600 text-sm">
+              You can create up to {MAX_CARDS} wisdom cards. To save your cards permanently, you'll need to create an account. 
+              Want unlimited cards? Join the waitlist for our mobile app!
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
